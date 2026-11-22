@@ -12,8 +12,8 @@ _Last updated: 2026-11-23 (end of session 1)_
 | Dashboard (`frontend/dashboard/`, React 19 + Vite 7 + React Router 7) | **Implemented**, builds; register / project / API key flows manually verified |
 | `README.md`, `docs/architecture.md`, `docs/integration-guide.md` | **Not written yet** |
 | `docs/handoff/PROJECT_HANDOFF.md`, `docs/handoff/CHANGELOG.md` | **Not written yet** |
-| Git | **No repository yet** (`git init` never run). Nothing committed, nothing pushed. |
-| GitHub `ali-kassab/notification-service` | **Does not exist yet** (verified free on 2026-11-22). Not created. |
+| Git | Repository on branch `main`; 6 logical commits (initial publish) + this handoff update. Working tree clean after push. |
+| GitHub `ali-kassab/notification-service` | **Published, PUBLIC**, default branch `main`, remote HEAD verified equal to local `main` (2026-11-23). |
 
 No partial/half-edited code: every component compiles and its last full test run was green.
 
@@ -92,14 +92,14 @@ Pages: Login, Register, Overview (stats + type breakdown + recent), Projects (li
 4. Write `docs/handoff/PROJECT_HANDOFF.md` and `docs/handoff/CHANGELOG.md` (sections 2–5 of this file are the source material).
 5. Optional: `sdk/javascript/README.md`; manually click through Send test / history / details pages.
 6. Start Docker, re-run the full verification (section 8).
-7. Git + GitHub publication (section 7 blocker must be resolved first).
+7. Commit the docs from items 1–4 and push them (ask the user before pushing).
 
 ## 7. Git / GitHub state and blocker
-- `D:\Workspace\Notification sys` is **not a Git repository**. No branch, no commits, no remote.
-- Global Git identity on this machine: `ali-kassab` / `alikassab155@gmail.com`; `gh` authenticated as **ali-kassab** (scopes include `repo`). No `GIT_AUTHOR_*`/`GIT_COMMITTER_*` overrides were set.
-- **Blocker:** the original project brief asked to create a new public repo `ali-kassab/notification-service` and push to `main`; the shutdown instructions of 2026-11-23 forbid pushing to `main` and creating/switching branches without authorization, and name no authorized feature branch. Because of that conflict, no `git init`, commit, repo creation or push was performed. **The user must decide** the target: (a) initialize with `main` and push the initial commit to `main` of the new repo, or (b) a named feature branch.
-- Must NOT be committed: `backend/.env` (local secrets), any `node_modules/`, `dist/`, `*.tsbuildinfo`. `.gitignore` already covers these. `backend/.env.example` and `frontend/dashboard/.env.example` should be committed.
-- Every commit must have Author = Committer = `ali-kassab <alikassab155@gmail.com>`, no AI co-author trailers; verify with `git log -1 --format='%an <%ae> | %cn <%ce>'`. Confirm `gh auth status` and `git remote -v` with the user before any push.
+- On 2026-11-23 the user explicitly authorized "Push initial to main". Done: `git init -b main`, repo `https://github.com/ali-kassab/notification-service` created **public** under account **ali-kassab** (verified with `gh auth status`), remote `origin` = `https://github.com/ali-kassab/notification-service.git`, `main` pushed and tracking `origin/main`.
+- Initial commits (oldest → newest): `e283fed` scaffolding + PostgreSQL, `7ac447c` backend, `21d83dd` SDK, `325fed3` React demo, `5087743` dashboard, `3655125` session handoff. Remote HEAD verified = `3655125` before this handoff update; 106 files on the remote.
+- All commits verified on GitHub: Author = Committer = `ali-kassab <alikassab155@gmail.com>`; no `Co-authored-by` or AI attribution.
+- Not committed (ignored): `backend/.env`, `node_modules/`, `dist/`, `*.tsbuildinfo`. A secret scan of the committed files found no API keys or tokens.
+- Rules for future work: every commit must have Author = Committer = `ali-kassab <alikassab155@gmail.com>` with no AI trailers (check `git log -1 --format='%an <%ae> | %cn <%ce>'`); each push needs the user's explicit approval for that push; never force-push or merge without approval.
 
 ## 8. How to continue (exact steps)
 1. Start Docker Desktop, then from the repo root:
@@ -114,4 +114,4 @@ Pages: Login, Register, Overview (stats + type breakdown + recent), Projects (li
 3. SDK: `cd sdk/javascript && npm install && npm test`; then with the backend running (`cd backend && npm start`): `NAAS_BASE_URL=http://localhost:3000 npm run test:integration` (expect 3 passing).
 4. Builds: `cd frontend/dashboard && npm install && npm run build`; `cd sdk/examples/react-demo && npm install && npm run build`.
 5. Demo run: create a project + API key in the dashboard (`npm run dev` in `frontend/dashboard`), then `NAAS_API_KEY=nsk_... npm run server` and `npm run dev` in `sdk/examples/react-demo`.
-6. **Next step for the next session:** ask the user which branch to publish to (section 7), then write the missing docs (section 6, items 1–4), re-run section 8 checks, and only then `git init`, commit in logical commits with the verified identity, create `ali-kassab/notification-service` (public) with the user's go-ahead, push, and verify owner/visibility/files/remote HEAD.
+6. **Next step for the next session:** `git pull` on `main`, start Docker and re-run the section 8 checks, then write the missing docs (section 6, items 1–4), commit them with the verified identity, and ask the user before pushing.
