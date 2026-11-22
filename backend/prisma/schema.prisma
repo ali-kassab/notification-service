@@ -1,0 +1,135 @@
+// Notification as a Service - database schema
+// Docs: docs/handoff/PROJECT_HANDOFF.md#database-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+}
+
+/// How the recipients of a notification were selected.
+enum NotificationTarget {
+  USER // a single recipient
+  USERS // an explicit list of recipients
+  BROADCAST // every known end user of the project
+}
+
+/// Per-recipient state. A row is never "delivered" just because a socket event was emitted:
+/// DELIVERED is only set once the recipient's client acknowledges the event.
+enum RecipientStatus {
+  STORED // persisted, not yet acknowledged by a client
+  DELIVERED // a connected client acknowledged the real-time event
+  READ // the recipient marked it as read
+}
+
+/// Dashboard account (a developer/operator who owns projects).
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  projects     Project[]
+}
+
+/// An integrating application (CRM, bank app, shop...). All notification data is isolated per project.
+model Project {
+  id            String         @id @default(uuid())
+  /// Public, human-readable identifier ("projectKey"), unique across the service.
+  slug          String         @unique
+  name          String
+  description   String?
+  ownerId       String
+  owner         User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  apiKeys       ApiKey[]
+  endUsers      EndUser[]
+  notifications Notification[]
+  recipients    NotificationRecipient[]
+
+  @@index([ownerId])
+}
+
+/// Secret server-side credential for a project. Only a SHA-256 hash of the key is stored.
+model ApiKey {
+  id         String    @id @default(uuid())
+  projectId  String
+  project    Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name       String
+  /// First characters of the key, shown in the dashboard so keys can be told apart.
+  prefix     String
+  keyHash    String    @unique
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([projectId])
+}
+
+/// A user of the integrating application, identified by that application's own user id.
+/// Recorded when they first receive a notification or get a user token; used as the broadcast audience.
+model EndUser {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  externalId  String
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  @@unique([projectId, externalId])
+}
+
+/// The content of a notification, stored once per send (even when sent to many users).
+model Notification {
+  id             String                  @id @default(uuid())
+  projectId      String
+  project        Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title          String
+  message        String
+  type           NotificationType        @default(INFO)
+  priority       NotificationPriority    @default(NORMAL)
+  metadata       Json?
+  target         NotificationTarget
+  recipientCount Int                     @default(0)
+  createdAt      DateTime                @default(now())
+  recipients     NotificationRecipient[]
+
+  @@index([projectId, createdAt])
+}
+
+/// One inbox entry: a notification as seen by one recipient, with its own read/delivery state.
+model NotificationRecipient {
+  id             String          @id @default(uuid())
+  notificationId String
+  notification   Notification    @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  /// Denormalised from Notification so every inbox query can be scoped by project without a join.
+  projectId      String
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  recipientId    String
+  status         RecipientStatus @default(STORED)
+  deliveredAt    DateTime?
+  readAt         DateTime?
+  createdAt      DateTime        @default(now())
+
+  @@unique([notificationId, recipientId])
+  @@index([projectId, recipientId, createdAt])
+  @@index([projectId, recipientId, readAt])
+}
