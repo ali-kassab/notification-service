@@ -6,58 +6,56 @@ Permanent context, architecture, decisions and constraints are in [PROJECT_HANDO
 
 ## 1. Project overview
 
-A self-hostable notification service: a NestJS + Prisma + PostgreSQL + Socket.IO backend, a TypeScript SDK, a React demo and a React dashboard. All four were implemented and tested in session 1 and are on `main` (pushed, public repo `ali-kassab/notification-service`).
+A self-hostable notification service: a NestJS + Prisma + PostgreSQL + Socket.IO backend, a TypeScript SDK, a React demo and a React dashboard. All four were implemented in session 1 and are on `main`. This session finished the remaining documentation and verification work. **Every planned work item is now done.**
 
-## 2. Task completed this session
+## 2. Work completed this session (branch `docs/project-documentation`, pushed)
 
-**Project documentation** (session 1 handoff, §6 items 1–4), on local branch **`docs/project-documentation`** (created from `main` at `d7f4295`):
-
-| File | Content |
+| File | Change |
 |---|---|
-| `README.md` (new) | Overview, diagram, features, stack, structure, setup with a local PostgreSQL (no Docker), env vars, API overview, auth model, SDK example, testing, limitations |
-| `docs/architecture.md` (new) | Components, data model, send lifecycle, DELIVERED semantics, WebSocket lifecycle, credentials/isolation, cross-cutting concerns, limitations |
-| `docs/integration-guide.md` (new) | Step-by-step integration (project + key, SDK send, user tokens, browser inbox, server-side inbox management, checklist, delivery states) |
-| `docs/handoff/PROJECT_HANDOFF.md` (new) | Permanent reference incl. Git rules, **no-Docker rule**, Installed Skills and Reuse-First policies |
-| `docs/handoff/CHANGELOG.md` (new) | 1.0.0 history + unreleased docs entry |
-| `docs/handoff/SESSION_HANDOFF.md` (rewritten) | This file |
+| `README.md` | New: overview, diagram, features, stack, structure, native PostgreSQL setup (no Docker), env vars, API, auth model, SDK example, testing, limitations |
+| `docs/architecture.md` | New: components, data model, send/real-time lifecycles, DELIVERED semantics, credentials, limitations |
+| `docs/integration-guide.md` | New: step-by-step integration (SDK, REST, Socket.IO, checklist) |
+| `sdk/javascript/README.md` | New: SDK reference (server + browser APIs, errors, development) |
+| `docs/handoff/PROJECT_HANDOFF.md` | New: permanent reference (Git rules, no-Docker rule, local DB, authorized branch, Skills and Reuse-First policies) |
+| `docs/handoff/CHANGELOG.md` | New |
+| `docs/handoff/SESSION_HANDOFF.md` | Rewritten (this file) |
+| `.claude/launch.json` | Added a `backend` preview config (`npm --prefix backend start`, port 3000) |
 
-No application code, config or dependency was changed. All API, SDK and behaviour claims in the docs were checked against the source (DTOs, `notifications.service.ts`, delivery service, gateway, guards, SDK `server.ts`/`browser.ts`/`http.ts`/`types.ts`).
+No application source code was changed. The documented API and SDK behaviour was checked against the source.
 
-## 3. New constraint from the user (permanent, also in PROJECT_HANDOFF §6)
+## 3. Environment decisions made this session
 
-**Never use Docker in this project.** Docker Desktop was briefly launched this session, failed to start, and its processes were stopped right after the user's instruction. The docs now describe a native PostgreSQL setup. `docker-compose.yml` and `docker/` were left in place untouched, and the README labels them as "older setup, not used". Whether to delete them is the user's decision.
+- **No Docker** (the user's instruction). Docker Desktop was briefly launched before the instruction arrived, never finished starting, and was stopped.
+- The machine's PostgreSQL services (17 on 5432, 16 on 5433) require a superuser password the agent does not have. Instead, a **private PostgreSQL 17 instance** was created with the installed binaries: data directory `D:\Workspace\naas-pgdata` (outside the repo), port **5435**, user `naas`/`naas`, databases `naas` + `naas_test`, both migrated. It matches the committed defaults, so no config change was needed. Start/stop commands are in PROJECT_HANDOFF §6. **It was stopped at the end of the session.**
+- The local dashboard test account for the dev DB is in `D:\Workspace\naas-pgdata\DEV_ACCOUNT.txt` (not in the repo).
+- `docker-compose.yml` and `docker/` were left untouched, and the README marks them as unused. Deleting them is the user's decision.
 
 ## 4. Verification actually executed (2026-11-23)
 
 | Check | Result |
 |---|---|
 | Backend `npm run build` | success |
-| Backend unit `npx jest` | **2 suites, 5/5 passed** |
-| SDK unit `npm test` | **5/5 passed** |
-| Dashboard `npm run build` | success |
-| Demo `npm run build` | success |
-| Backend e2e (54 tests) | **not run — blocked** (see §5) |
-| SDK integration (3 tests) | **not run — blocked** (needs backend + DB) |
-| Manual click-through of dashboard Send test / history / details / integration pages | not done (needs a running backend + DB) |
+| Backend unit (`npx jest`) | 2 suites, **5/5 passed** |
+| Backend e2e (`npm run test:e2e`, private PG `naas_test`) | 4 suites, **54/54 passed** |
+| SDK unit (`npm test`) | **5/5 passed** |
+| SDK integration (`NAAS_BASE_URL=http://localhost:3000 npm run test:integration`) | **3/3 passed** |
+| Dashboard / demo `npm run build` | success / success |
+| `GET /api/v1/health` | `{"status":"ok"}` |
+| Dashboard click-through (built-in browser, `localhost:5173` → backend `:3000`) | Register ✓, create project ✓, Send test one user / several users (3) / broadcast (3) ✓, invalid metadata JSON rejected ✓, history list + target filter in URL ✓, details page with per-recipient status + status filter ✓, delivered/read counts updated after alice's client fetched and read ✓, delete for all recipients ✓, API key create (shown once) + revoke → REVOKED ✓, integration page shows the project key and API URL ✓, user token cannot send (401) ✓ |
 
-## 5. Blockers
+The React demo was not re-run in the browser this session (it was verified in session 1, and its build passes).
 
-1. **Database for e2e/integration tests.** Native PostgreSQL 17 (port 5432) and 16 (port 5433) are running as Windows services, but neither has the `naas` role (`password authentication failed for user "naas"`). Creating it needs the `postgres` superuser password, which the agent does not have. The user should run this once:
-   ```
-   "C:\Program Files\PostgreSQL\17\bin\psql.exe" -h localhost -p 5432 -U postgres -c "CREATE ROLE naas LOGIN PASSWORD 'naas'" -c "CREATE DATABASE naas OWNER naas" -c "CREATE DATABASE naas_test OWNER naas"
-   ```
-2. **Push not done.** The user's standing instruction is to push only to "the authorized feature branch specified in PROJECT_HANDOFF.md", and no such branch has been designated. The work is committed locally on `docs/project-documentation` only. The user must name or approve the push branch.
+## 5. Known issues (unchanged, documented in README / architecture)
 
-## 6. Known issues (unchanged from session 1)
-
-- `npm audit` (backend): high advisories in `effect`/`deepmerge-ts` via the Prisma 6 CLI and moderate ones in `glob`/`minimatch` via `@nestjs/cli`. Tooling only. Fixing them needs breaking major upgrades.
+- `npm audit` (backend): advisories in Prisma 6 CLI and Nest CLI tooling dependencies. Fixing them needs breaking major upgrades, which are not done by policy.
 - Single-instance real-time delivery, no redelivery of un-acked events, broadcast without chunking, `recipientCount` not decremented on delete.
-- `backend/.env`, `backend/.env.example` and `backend/test/setup-env.ts` default to port **5435** (the old Docker port). Override `DATABASE_URL` for the native server. Changing the committed defaults to 5432 is a small, optional follow-up.
-- Dev servers may shift ports (5173/5174 taken on this machine), so keep `CORS_ORIGINS` in line with the actual origins.
+- Dev ports can shift when 5173/5174 are taken, so keep `CORS_ORIGINS` in line with the actual origins.
 
-## 7. Exact next steps
+## 6. Git state
 
-1. User: create the `naas` role and databases (§5.1), and authorize a push branch (§5.2).
-2. Then, with `DATABASE_URL="postgresql://naas:naas@localhost:5432/naas_test?schema=public"`: `cd backend && npx prisma migrate deploy && npm run test:e2e` (expect 54 passing), start the backend with a dev `DATABASE_URL` pointing at the `naas` database (`npx prisma migrate deploy && npm start`), then `cd sdk/javascript && NAAS_BASE_URL=http://localhost:3000 npm run test:integration` (expect 3 passing).
-3. Optional (session 1 §6 item 5): `sdk/javascript/README.md`, and a manual click-through of the dashboard pages listed in §4.
-4. Push `docs/project-documentation` to the authorized branch only after approval. Never push to `main` directly.
+- `main` is unchanged at `d7f4295` (= `origin/main`).
+- `docs/project-documentation` is pushed to `origin` (authorized by the user on 2026-11-23). There is no PR and no merge; both need the user's request.
+
+## 7. Next step
+
+No planned work remains. Possible next actions, only at the user's request: open a PR or merge `docs/project-documentation` into `main`, delete the unused Docker files, or pick up an item from §5.

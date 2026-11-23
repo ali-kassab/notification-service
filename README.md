@@ -62,7 +62,17 @@ Prerequisites: Node.js 18+ (developed on Node 26), npm, and a locally installed 
 
 ### 1. Database
 
-Create the role and both databases once, as the PostgreSQL superuser. Use the port of your local server (5432 by default):
+**Option A: a private instance on port 5435 (matches the committed defaults, no superuser password needed).** Use the binaries of an installed PostgreSQL (Windows paths shown; use any data directory outside the repo):
+
+```bash
+PG="/c/Program Files/PostgreSQL/17/bin"
+echo naas > pw.txt && "$PG/initdb" -D ../naas-pgdata -U naas --pwfile=pw.txt -A scram-sha-256 -E UTF8 --locale=C && rm pw.txt
+"$PG/pg_ctl" -D ../naas-pgdata -l ../naas-pgdata/server.log -o "-p 5435 -c listen_addresses=localhost" start
+PGPASSWORD=naas "$PG/psql" -h localhost -p 5435 -U naas -d postgres -c "CREATE DATABASE naas" -c "CREATE DATABASE naas_test"
+# later: "$PG/pg_ctl" -D ../naas-pgdata stop   /   start again with the pg_ctl start line above
+```
+
+**Option B: an existing server.** Create the role and both databases once, as the PostgreSQL superuser. Use the port of your local server (5432 by default):
 
 ```bash
 psql -h localhost -p 5432 -U postgres \
@@ -71,7 +81,7 @@ psql -h localhost -p 5432 -U postgres \
   -c "CREATE DATABASE naas_test OWNER naas"
 ```
 
-`naas` is the development database and `naas_test` is used by the e2e tests. Then point `DATABASE_URL` in `backend/.env` at your server, for example `postgresql://naas:naas@localhost:5432/naas?schema=public`. (The committed defaults use port 5435, the port from the older `docker-compose.yml`.)
+`naas` is the development database and `naas_test` is used by the e2e tests. With option B, point `DATABASE_URL` in `backend/.env` at your server, for example `postgresql://naas:naas@localhost:5432/naas?schema=public`. The committed defaults (`.env.example`, e2e setup) use `localhost:5435`, which is option A.
 
 ### 2. Backend
 
@@ -205,7 +215,7 @@ inbox.subscribe({ onNotification: (n) => show(n), onInboxUpdated: (u) => setBadg
 
 ```bash
 cd backend
-export DATABASE_URL="postgresql://naas:naas@localhost:5432/naas_test?schema=public"   # your local server
+export DATABASE_URL="postgresql://naas:naas@localhost:5435/naas_test?schema=public"   # option A default; adjust for option B
 npx prisma migrate deploy     # once, for the test database
 npx jest                      # unit tests (no database needed)
 npm run test:e2e              # e2e: real PostgreSQL (naas_test), HTTP and Socket.IO

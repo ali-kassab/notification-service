@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased — documentation (branch `docs/project-documentation`, not pushed)
+## Unreleased — documentation and verification (branch `docs/project-documentation`, pushed)
+
+- Added `sdk/javascript/README.md` (already listed in the package's `files`).
+- README: native PostgreSQL setup (private instance on 5435, or an existing server). No Docker.
+- `.claude/launch.json`: added a `backend` preview configuration (port 3000).
+- Full verification without Docker: 5 unit + 54 e2e backend tests, 5 unit + 3 integration SDK tests, builds, and a manual dashboard click-through.
 
 - Added `README.md`: overview, architecture diagram, stack, features, structure, setup with a local PostgreSQL (no Docker), environment variables, API overview, authentication model, SDK example, testing.
 - Added `docs/architecture.md`: components, data model, send and real-time lifecycles, delivery semantics, credentials, cross-cutting concerns, limitations.

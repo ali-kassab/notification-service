@@ -51,14 +51,15 @@ There is no release roadmap (R-numbered releases) defined for this project. Work
 ## 6. Constraints that must not be changed or overlooked
 
 ### Environment
-- **Never use Docker in this project**: no `docker`/`docker compose` commands and no starting Docker Desktop (the user's instruction, 2026-11-23). Use a natively installed PostgreSQL. This machine runs PostgreSQL 17 on port 5432 and 16 on port 5433 as Windows services. If the required role or databases are missing, report the database-dependent checks as blocked.
-- The committed defaults (`backend/.env.example`, `backend/test/setup-env.ts`) still point at port 5435. Override them with `DATABASE_URL`, because environment values win.
+- **Never use Docker in this project**: no `docker`/`docker compose` commands and no starting Docker Desktop (the user's instruction, 2026-11-23). Use native PostgreSQL.
+- **Local database on this machine:** a private PostgreSQL 17 instance with data directory `D:\Workspace\naas-pgdata` (outside the repo), port **5435**, superuser `naas`/`naas`, databases `naas` and `naas_test`. It matches the committed defaults in `backend/.env`, `.env.example` and `test/setup-env.ts`. Start it with `"C:\Program Files\PostgreSQL\17\bin\pg_ctl" -D D:/Workspace/naas-pgdata -l D:/Workspace/naas-pgdata/server.log -o "-p 5435 -c listen_addresses=localhost" start` and stop it with `... pg_ctl -D D:/Workspace/naas-pgdata stop`. The machine's own PostgreSQL services (17 on 5432, 16 on 5433) need a superuser password the agent does not have, so do not use them.
+- The local dashboard test account (dev DB only) is stored in `D:\Workspace\naas-pgdata\DEV_ACCOUNT.txt`. Never commit it.
 
 ### Git and GitHub
 - Identity: Author = Committer = `ali-kassab <alikassab155@gmail.com>`. Check `git config user.name/user.email` and that no `GIT_AUTHOR_*`/`GIT_COMMITTER_*` overrides are set before committing. Verify afterwards with `git log -1 --format='%an <%ae> | %cn <%ce>'`.
 - No `Co-Authored-By`, "Generated with …" or any AI attribution in commits or PRs.
 - Remote: `origin` = `https://github.com/ali-kassab/notification-service.git` (public), account `ali-kassab`. Run `gh auth status` and `git remote -v` before any push.
-- Do not commit to or modify `main` directly. Work on a feature branch. **No authorized push branch has been designated yet.** Pushing needs a branch the user has authorized.
+- Do not commit to or modify `main` directly. **Authorized feature branch: `docs/project-documentation`** (the user approved pushing it on 2026-11-23). Pushing to any other branch needs the user's approval.
 - Never force-push, rewrite history (`--amend`, rebase, `reset --hard`), run `git clean`, delete branches or tags, merge, create PRs or enable auto-merge without the user's explicit approval.
 - Never commit `backend/.env`, `node_modules/`, `dist/` or `*.tsbuildinfo` (they are ignored), or any secret.
 
@@ -81,14 +82,13 @@ There is no release roadmap (R-numbered releases) defined for this project. Work
 ## 8. Verification commands (no Docker)
 
 ```bash
-# one-time, as the PostgreSQL superuser
-psql -h localhost -p 5432 -U postgres -c "CREATE ROLE naas LOGIN PASSWORD 'naas'" \
-  -c "CREATE DATABASE naas OWNER naas" -c "CREATE DATABASE naas_test OWNER naas"
-
+# start the private PostgreSQL instance (see §6), then:
 cd backend
-export DATABASE_URL="postgresql://naas:naas@localhost:5432/naas_test?schema=public"
-npx prisma migrate deploy && npm run build && npx jest && npm run test:e2e
-cd ../sdk/javascript && npm test            # + NAAS_BASE_URL=http://localhost:3000 npm run test:integration with a running backend
+npx prisma migrate deploy                                   # dev DB (backend/.env)
+DATABASE_URL="postgresql://naas:naas@localhost:5435/naas_test?schema=public" npx prisma migrate deploy
+npm run build && npx jest && npm run test:e2e               # e2e uses naas_test by default
+# backend for the SDK integration tests / dashboard: preview_start "backend" (.claude/launch.json) or npm start
+cd ../sdk/javascript && npm test && NAAS_BASE_URL=http://localhost:3000 npm run test:integration
 cd ../../frontend/dashboard && npm run build
 cd ../../sdk/examples/react-demo && npm run build
 ```
