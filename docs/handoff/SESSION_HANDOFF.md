@@ -53,9 +53,11 @@ The React demo was not re-run in the browser this session (it was verified in se
 
 ## 6. Git state
 
-- `main` is unchanged at `d7f4295` (= `origin/main`).
-- `docs/project-documentation` is pushed to `origin` (authorized by the user on 2026-11-23). There is no PR and no merge; both need the user's request.
+- On 2026-11-23 the user asked for the final integration. `docs/project-documentation` was **fast-forward merged into `main`** (`d7f4295..61633b6`, no merge commit, no conflicts; the branch only added docs, the SDK README and the `backend` launch config). `main` was pushed to `origin` (account `ali-kassab`).
+- Verified through the GitHub API: remote `main` = local HEAD, author = committer = `ali-kassab <alikassab155@gmail.com>`, 112 files (complete application + README + SDK README + all handoff docs). Default branch `main`.
+- Both branches are kept (neither was deleted), and this handoff update is on both. No PR was created.
+- Repository: https://github.com/ali-kassab/notification-service
 
 ## 7. Next step
 
-No planned work remains. Possible next actions, only at the user's request: open a PR or merge `docs/project-documentation` into `main`, delete the unused Docker files, or pick up an item from §5.
+No planned work remains. Possible next actions, only at the user's request: delete the unused Docker files, or pick up an item from §5.
